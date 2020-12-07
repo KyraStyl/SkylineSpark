@@ -23,23 +23,14 @@ object Main extends App {
     try{
       val filename = args(0)
 
-      val bufferedSource = Source.fromFile(filename)
       println("Reading from input file : " + filename + " . . .")
 
-      val pointsArray = ArrayBuffer[Point]()
-
-      for (line <- bufferedSource.getLines()) {
-        pointsArray += new Point(line)
-      }
-      bufferedSource.close
-
-      println(pointsArray.length+" elements loaded!")
+      val points = sc.textFile("testFile.csv").map(line => new Point(line))
+      println(points.count()+" elements loaded.")
 
       val perc = 0.35
-      val sample = Random.shuffle(pointsArray.toList).take((perc*pointsArray.length).ceil.toInt)
-      println("Sample size = "+sample.length)
-
-      val points = sc.parallelize(pointsArray)
+      val sample = points.sample(false,perc)
+      println("Sample size = "+sample.count)
 
 
     }catch {
