@@ -1,10 +1,11 @@
 import breeze.linalg.shuffle
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 import scala.util.Random
-
+import org.apache.log4j.{Level, Logger}
 
 object Main extends App {
 
@@ -15,7 +16,8 @@ object Main extends App {
 
   // Create spark context
   val sc = new SparkContext(sparkConf)
-  sc.setLogLevel("OFF")
+  Logger.getLogger("org").setLevel(Level.OFF)
+//  sc.setLogLevel("OFF")
 
   if (args.length == 0) {
     println("No arguments passed !")
