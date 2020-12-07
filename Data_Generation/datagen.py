@@ -10,6 +10,7 @@ from numpy import random
 from scipy.stats import truncnorm
 import numpy as np
 import matplotlib.pyplot as plt
+
 help_me="""
 This is a script to generate data in a form of csv (comma seperated)
 Obligatory parameters:
@@ -22,7 +23,7 @@ If a dimension is not described, then uniform will be used.
 
 Optional parameters:
     -u,  --uniform    Followed by a list of ints that correspond to dimensions
-    -ac, --anticorrelated Followed by a list of ints. These dimensions will 
+    -a, --anticorrelated Followed by a list of ints. These dimensions will 
                     be in pairs
     -c, --correlated      Followed by a list of ints. These dimensions will 
                     be in pairs
@@ -39,7 +40,7 @@ Example:
 
 def get_options(argv):
     try:
-        opts, args = getopt.getopt(argv,"hd:o:p:u:ac:c:n:",["dimensions=","output=","points=","uniform=","anticorrelated=","correlated=","normal="])
+        opts, args = getopt.getopt(argv,"hd:o:p:u:a:c:n:",["dimensions=","output=","points=","uniform=","anticorrelated=","correlated=","normal="])
     except:
         print(help_me)
         sys.exit(2)
@@ -57,7 +58,7 @@ def get_options(argv):
                 data["points"]=int(arg)
             elif opt in ("-u", "--uniform"):
                 data["uniform"]=list(map(int,arg.split(",")))
-            elif opt in ("-ac", "--anticorrelated"):
+            elif opt in ("-a", "--anticorrelated"):
                 data["anticorrelated"]=list(map(int,arg.split(",")))
                 if len(data["anticorrelated"])%2!=0:
                     print("Dims in anticorrelated must be in pairs")
@@ -83,19 +84,18 @@ def generate_uniform(size:int):
     return min_max_normalization(list(random.uniform(low=0,high=1,size=size)))
 
 
-def get_truncated_normal(mean=0.5, sd=1, low=0, upp=1):
-    return truncnorm(
-        (low - mean) / sd, (upp - mean) / sd, loc=mean, scale=sd)
-    
 def generate_normal(size:int):
-    return min_max_normalization(list(get_truncated_normal().rvs(size)))
+    return min_max_normalization(list( random.normal(loc=1, scale=2, size=size)))
+
 
 def generate_correlation(size:int,correlated=True):
     mean = [0.5,0.5]
+    x=None
     if correlated:
         x=random.uniform(0.3,0.99) # pearson correlation
     else:
         x=random.uniform(-0.99,-0.3)
+    print(x)
     r=[[1,float(x)],[float(x),1]]
     L = np.linalg.cholesky(r)
     uncorrelated = np.random.standard_normal((2, size))
