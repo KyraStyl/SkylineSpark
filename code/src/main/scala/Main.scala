@@ -25,7 +25,7 @@ object Main extends App {
 
       println("Reading from input file : " + filename + " . . .")
 
-      val points = sc.textFile("testFile.csv").map(line => new Point(line))
+      val points = sc.textFile(filename).map(line => new Point(line))
       println(points.count()+" elements loaded.")
 
       val perc = 0.35
