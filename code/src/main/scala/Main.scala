@@ -1,11 +1,8 @@
-import breeze.linalg.shuffle
-import org.apache.spark.sql.SparkSession
+import org.apache.log4j.{Level, Logger}
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import scala.io.Source
-import scala.util.Random
-import org.apache.log4j.{Level, Logger}
+import scala.collection.mutable.ListBuffer
 
 object Main extends App {
 
@@ -16,8 +13,8 @@ object Main extends App {
 
   // Create spark context
   val sc = new SparkContext(sparkConf)
-  //  Logger.getLogger("org").setLevel(Level.OFF)
-  sc.setLogLevel("OFF")
+    Logger.getLogger("org").setLevel(Level.OFF)
+//  sc.setLogLevel("OFF")
 
   if (args.length == 0) {
     println("No arguments passed !")
@@ -47,8 +44,30 @@ object Main extends App {
         }
         cell += list.toList
       }
-
+      println("Boundaries per dimension")
+      cell.toList.foreach(println)
       // next broadcast cells and map all elements to each of these cells
+      val cellBounds=sc.broadcast(cell.toList)
+
+      //map each point to a cell
+      val mapToCells:RDD[PointInCell]=points.map(point=>{
+        val bounds=cellBounds.value
+        var cells :ListBuffer[Int] = ListBuffer.fill(bounds.size)(-1)
+        for(dimension <- bounds.indices){ //looping through dimensions
+          for (bounds_index <- bounds(dimension).indices){
+            if (point.values(dimension)<bounds(dimension)(bounds_index) && cells(dimension)== -1){
+              cells(dimension)=bounds_index
+            }
+          }
+          if(cells(dimension) == -1){
+            cells(dimension)=bounds(dimension).size
+          }
+        }
+        PointInCell(point,Cell(cells.toList))
+      })
+      //Its working
+      println("An example of  how PointInCell is represented")
+      mapToCells.take(1).foreach(x=>println(x.point,x.cell))
 
 
 
