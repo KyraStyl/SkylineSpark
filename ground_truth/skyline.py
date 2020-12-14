@@ -43,8 +43,9 @@ if __name__ == "__main__":
     #filename="Data_Generation/dataset1.csv"
     points=read_from_csv(filename)
     sk=find_skyline_brute_force(points) 
-    plt.scatter([i[0] for i in points],[i[1] for i in points],c='C0')
-    plt.scatter([i[0] for i in sk],[i[1] for i in sk],c='C1')
-    plt.savefig("answer.png")
+    if len(points[0]) == 2: #only print on 2 dimensions
+        plt.scatter([i[0] for i in points],[i[1] for i in points],c='C0')
+        plt.scatter([i[0] for i in sk],[i[1] for i in sk],c='C1')
+        plt.savefig("answer.png") 
     for point in sk:
         print(point)
