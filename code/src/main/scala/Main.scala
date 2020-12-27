@@ -2,7 +2,8 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 object Main extends App {
 
@@ -21,7 +22,7 @@ object Main extends App {
   } else {
     try {
       val filename = args(0)
-
+      //val filename= "dataset3_100.csv"
       println("Reading from input file : " + filename + " . . .")
 
       val points = sc.textFile(filename).map(line => new Point(line))
@@ -69,12 +70,69 @@ object Main extends App {
       println("An example of  how PointInCell is represented")
       mapToCells.take(1).foreach(x=>println(x.point,x.cell))
 
-
+      val skyline= computeSkyline(mapToCells)
+      println("Points in skyline: ")
+      skyline.foreach(println)
 
 
     } catch {
       case _: java.io.FileNotFoundException => println("This file could not be found!")
     }
+  }
+
+  def computeSkyline(points:RDD[PointInCell]): Iterable[Point]={
+    val partByCell = points.groupBy(x=>x.cell)
+    val prunedCells = pruneDominatedCells(partByCell.map(x=>x._1).collect().toBuffer)
+
+    val prunedRDD = partByCell.filter(x=>prunedCells.contains(x._1)).map(x=>(x._1,pruneDominatedPoints(x._2)))
+
+    val skyline = pruneDominatedPoints(prunedRDD.flatMap(x=>x._2).collect().toBuffer).map(x=>x.point)
+    skyline
+
+  }
+
+  def pruneDominatedPoints(points: Iterable[PointInCell]): Iterable[PointInCell] ={
+    var pr = points.toBuffer
+    var toPrune = new ArrayBuffer[Int]()
+    for(i <- 0 until pr.size)
+      for(j <- 0 until pr.size){
+        if(i!=j && isPointDominated(pr(j).point,pr(i).point)){
+          toPrune.append(j)
+        }
+      }
+    pr = pr.zipWithIndex.filter(x=> !toPrune.contains(x._2)).map(x => x._1)
+    pr
+  }
+
+  def pruneDominatedCells(input:mutable.Buffer[Cell]):  mutable.Buffer[Cell] ={
+    var pr = input
+    var toPrune = new ArrayBuffer[Int]()
+    for(i <- 0 until pr.length)
+      for(j <- 0 until pr.length){
+        if(i!=j && isCellDominated(pr(j),pr(i))){
+          toPrune.append(j)
+        }
+      }
+    pr = pr.zipWithIndex.filter(x=> !toPrune.contains(x._2)).map(x => x._1)
+    pr
+  }
+
+  def isPointDominated(pointA: Point,pointB: Point): Boolean ={
+    val a = pointA.values
+    val b = pointB.values
+    for (i <- 0 until a.length){
+      if(a(i).toFloat<b(i).toFloat) return false
+    }
+    true
+  }
+
+  def isCellDominated(cellA: Cell, cellB: Cell): Boolean ={
+    val a = cellA.indexes
+    val b = cellB.indexes
+    for (i <- 0 until a.length){
+      if(a(i)<=b(i)) return false
+    }
+    true
   }
   sc.stop()
 }
