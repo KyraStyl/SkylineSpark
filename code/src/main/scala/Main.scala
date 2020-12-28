@@ -79,6 +79,11 @@ object Main extends App {
       println("Top "+k+" points")
       TOPk.computeTopk(mapToCells,k).foreach(println)
 
+      //This is the code for topk of skyline
+      val kskyline =3
+      println("Top "+k+ "points of the skyline")
+      TopkSkyline.calculateTopKSkyline(mapToCells,kskyline)
+
     } catch {
       case _: java.io.FileNotFoundException => println("This file could not be found!")
     }

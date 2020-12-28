@@ -6,13 +6,14 @@ import scala.collection.mutable.ArrayBuffer
 
 object Skyline {
 
-  def computeSkyline(points:RDD[PointInCell]): Iterable[Point]={
+  def computeSkyline(points:RDD[PointInCell]): Iterable[PointInCell]={
     val partByCell = points.groupBy(x=>x.cell)
     val prunedCells = pruneDominatedCells(partByCell.map(x=>x._1).collect().toBuffer)
 
     val prunedRDD = partByCell.filter(x=>prunedCells.contains(x._1)).map(x=>(x._1,pruneDominatedPoints(x._2)))
 
-    val skyline = pruneDominatedPoints(prunedRDD.flatMap(x=>x._2).collect().toBuffer).map(x=>x.point)
+//    val skyline = pruneDominatedPoints(prunedRDD.flatMap(x=>x._2).collect().toBuffer).map(x=>x.point)
+    val skyline = pruneDominatedPoints(prunedRDD.flatMap(x=>x._2).collect().toBuffer)
     skyline
 
   }
