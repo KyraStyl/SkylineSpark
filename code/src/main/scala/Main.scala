@@ -20,8 +20,8 @@ object Main extends App {
     println("No arguments passed !")
   } else {
     try {
-      val filename = args(0)
-//      val filename= "dataset1.csv"
+//      val filename = args(0)
+      val filename= "dataset1.csv"
       println("Reading from input file : " + filename + " . . .")
 
       val points = sc.textFile(filename).map(line => new Point(line))
@@ -82,7 +82,7 @@ object Main extends App {
       //This is the code for topk of skyline
       val kskyline =3
       println("Top "+k+ "points of the skyline")
-      TopkSkyline.calculateTopKSkyline(mapToCells,kskyline)
+      TopkSkyline.calculateTopKSkyline(mapToCells,kskyline).foreach(println)
 
     } catch {
       case _: java.io.FileNotFoundException => println("This file could not be found!")

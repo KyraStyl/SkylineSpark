@@ -8,12 +8,13 @@ import scala.collection.mutable.ArrayBuffer
 
 object TopkSkyline {
 
-  def calculateTopKSkyline(points: RDD[PointInCell], k: Int): Unit = {
+  def calculateTopKSkyline(points: RDD[PointInCell], k: Int): Array[(PointInCell,Int)] = {
     val spark = SparkSession.builder().getOrCreate()
     val skyline = spark.sparkContext.parallelize(Skyline.computeSkyline(points).toSeq)
     val partByCell = points.map(x => (x.cell, 1)).reduceByKey(_ + _).collect().toBuffer
     val metrics = calculateLowerUpperF(partByCell)
-    val data = scorePoint(skyline, k, metrics, points)
+    scorePoint(skyline, k, metrics, points)
+    
   }
 
   def scorePoint(skyline: RDD[PointInCell], k: Int, metrics: ArrayBuffer[((Cell, Int), Int, Int, Int)], rddPoints: RDD[PointInCell]): Array[(PointInCell,Int)] = {
