@@ -2,7 +2,8 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 object Main extends App {
 
@@ -20,8 +21,8 @@ object Main extends App {
     println("No arguments passed !")
   } else {
     try {
-      val filename = args(0)
-
+//      val filename = args(0)
+      val filename= "dataset1.csv"
       println("Reading from input file : " + filename + " . . .")
 
       val points = sc.textFile(filename).map(line => new Point(line))
@@ -69,12 +70,19 @@ object Main extends App {
       println("An example of  how PointInCell is represented")
       mapToCells.take(1).foreach(x=>println(x.point,x.cell))
 
-
+      //This is the code for skyline
+      val skyline= Skyline.computeSkyline(mapToCells)
+      println("Points in skyline: ")
+      skyline.foreach(println)
 
 
     } catch {
       case _: java.io.FileNotFoundException => println("This file could not be found!")
     }
   }
+
+
+
+
   sc.stop()
 }
