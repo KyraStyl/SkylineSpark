@@ -1,4 +1,4 @@
-import Utils.{isCellDominated, isPointDominated}
+import Utils.{isCellFullyDominated, isPointDominated}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
@@ -36,7 +36,7 @@ object Skyline {
     val toPrune = new ArrayBuffer[Int]()
     for(i <- pr.indices)
       for(j <- pr.indices){
-        if(i!=j && isCellDominated(pr(j),pr(i))){
+        if(i!=j && isCellFullyDominated(pr(j),pr(i))){
           toPrune.append(j)
         }
       }
