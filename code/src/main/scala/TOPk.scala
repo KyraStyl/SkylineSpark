@@ -1,4 +1,4 @@
-import Utils.{isCellDominated, isCellFullyDominates, isCellPartiallyDominates, isPointDominated, isPointDominates}
+import Utils.{isCellFullyDominated,isCellPartiallyDominated, isPointDominated}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
@@ -14,7 +14,6 @@ object TOPk {
     val prunedCells=pruneCells(metrics,k,c) //prune based on the tl, gf and γ
     val prunedRDD =points.groupBy(x=>x.cell).filter(x=>prunedCells.contains(x._1))
     val data=scorePoint(prunedRDD.flatMap(x=>x._2).collect().toBuffer,k,metrics,points)
-    print("hi")
     data
 
   }
@@ -26,10 +25,13 @@ object TOPk {
       var tu=0
       var gf=0
       for (j <- cellCounts.indices){
-        if(Utils.isCellPartiallyDominates(cellCounts(i)._1,cellCounts(j)._1)) tu+=cellCounts(j)._2
+        if(isCellPartiallyDominated(cellCounts(j)._1,cellCounts(i)._1)) tu+=cellCounts(j)._2
+        //if(Utils.isCellPartiallyDominates(cellCounts(i)._1,cellCounts(j)._1)) tu+=cellCounts(j)._2
         if(i!=j){
-          if(Utils.isCellFullyDominates(cellCounts(i)._1,cellCounts(j)._1)) tl+=cellCounts(j)._2
-          if(Utils.isCellDominated(cellCounts(i)._1,cellCounts(j)._1)) gf+=cellCounts(j)._2
+          if (isCellFullyDominated(cellCounts(j)._1,cellCounts(i)._1)) tl+=cellCounts(j)._2
+          if (isCellPartiallyDominated(cellCounts(i)._1,cellCounts(j)._1)) gf+=cellCounts(j)._2
+          //if(Utils.isCellFullyDominates(cellCounts(i)._1,cellCounts(j)._1)) tl+=cellCounts(j)._2
+          //if(Utils.isCellDominated(cellCounts(i)._1,cellCounts(j)._1)) gf+=cellCounts(j)._2
         }
       }
       list.append((cellCounts(i),tl,tu,gf))
@@ -69,7 +71,8 @@ object TOPk {
       var d=0
       for(j <- pr.indices){
         if(i!=j && isPointDominated(pr(j).point,pr(i).point))  m+=1
-        if(i!=j && isPointDominates(pr(j).point,pr(i).point)) d+=1
+        if(i!=j && isPointDominated(pr(i).point,pr(j).point)) d+=1
+        //if(i!=j && isPointDominates(pr(j).point,pr(i).point)) d+=1
       }
       if (m<k) toKeep.append((i,d))
 
@@ -87,7 +90,8 @@ object TOPk {
       //for all the cells that partially dominates
       var pcells = calculateCellsThatPartiallyDominates(pr(i).cell,cells)
       val extraP=rddPoints.filter(x=>pcells.contains(x.cell)).map(x=>{
-        if (isPointDominates(pr(i).point,x.point)) 1
+        if(isPointDominated(x.point,pr(i).point)) 1
+        //if (isPointDominates(pr(i).point,x.point)) 1
         else 0
       }).sum().toLong
       score.append((pr(i),tl+extraP))
@@ -103,8 +107,9 @@ object TOPk {
         if (cell.indexes(i)>acell.indexes(i)){
           isLegit=false
         }
-    }
-      if (isLegit && !isCellFullyDominates(cell,acell)) partiallyDomCells.append(acell)
+      }
+      if (isLegit && !isCellFullyDominated(acell,cell)) partiallyDomCells.append(acell)
+      //if (isLegit && !isCellFullyDominates(cell,acell)) partiallyDomCells.append(acell)
     }
     partiallyDomCells
   }
