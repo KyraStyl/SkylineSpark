@@ -13,3 +13,4 @@ class Point (var line: String) extends Serializable{
 case class Cell(indexes: List[Int]) extends Serializable
 
 case class PointInCell(point:Point, cell:Cell) extends Serializable
+
