@@ -26,12 +26,9 @@ object TOPk {
       var gf=0
       for (j <- cellCounts.indices){
         if(isCellPartiallyDominated(cellCounts(j)._1,cellCounts(i)._1)) tu+=cellCounts(j)._2
-        //if(Utils.isCellPartiallyDominates(cellCounts(i)._1,cellCounts(j)._1)) tu+=cellCounts(j)._2
         if(i!=j){
           if (isCellFullyDominated(cellCounts(j)._1,cellCounts(i)._1)) tl+=cellCounts(j)._2
           if (isCellPartiallyDominated(cellCounts(i)._1,cellCounts(j)._1)) gf+=cellCounts(j)._2
-          //if(Utils.isCellFullyDominates(cellCounts(i)._1,cellCounts(j)._1)) tl+=cellCounts(j)._2
-          //if(Utils.isCellDominated(cellCounts(i)._1,cellCounts(j)._1)) gf+=cellCounts(j)._2
         }
       }
       list.append((cellCounts(i),tl,tu,gf))
@@ -72,7 +69,6 @@ object TOPk {
       for(j <- pr.indices){
         if(i!=j && isPointDominated(pr(j).point,pr(i).point))  m+=1
         if(i!=j && isPointDominated(pr(i).point,pr(j).point)) d+=1
-        //if(i!=j && isPointDominates(pr(j).point,pr(i).point)) d+=1
       }
       if (m<k) toKeep.append((i,d))
 
@@ -91,7 +87,6 @@ object TOPk {
       var pcells = calculateCellsThatPartiallyDominates(pr(i).cell,cells)
       val extraP=rddPoints.filter(x=>pcells.contains(x.cell)).map(x=>{
         if(isPointDominated(x.point,pr(i).point)) 1
-        //if (isPointDominates(pr(i).point,x.point)) 1
         else 0
       }).sum().toLong
       score.append((pr(i),tl+extraP))
@@ -109,7 +104,6 @@ object TOPk {
         }
       }
       if (isLegit && !isCellFullyDominated(acell,cell)) partiallyDomCells.append(acell)
-      //if (isLegit && !isCellFullyDominates(cell,acell)) partiallyDomCells.append(acell)
     }
     partiallyDomCells
   }
