@@ -39,7 +39,7 @@ object Main extends App {
       for (dimension <- sample.first().values.indices) {
         val sort = sample.map(x => x.values(dimension)).collect().sorted
         var list = new ListBuffer[Float]()
-        for (i <- 0 until number_of_cells) {
+        for (i <- 0 until number_of_cells-1) {
           val position = (i / number_of_cells.toFloat) * sort.length
           list += sort(position.toInt)
         }
@@ -74,6 +74,9 @@ object Main extends App {
       val skyline= Skyline.computeSkyline(mapToCells)
       println("Points in skyline: ")
       skyline.foreach(println)
+
+      //This is the code for top k
+      TOPk.computeTopk(mapToCells,10).foreach(println)
 
 
     } catch {
