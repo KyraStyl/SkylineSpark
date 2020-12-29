@@ -104,9 +104,9 @@ def generate_correlation(size:int,correlated=True):
 
 def min_max_normalization(dimension:list,minimum=0,maximum=1):
     newdata=[]
-    for d in dimension:
-        minx=min(dimension)
-        maxx=max(dimension)
+    minx=min(dimension)
+    maxx=max(dimension)
+    for d in dimension:    
         newdata.append((d-minx)/(maxx-minx)* (maximum-minimum) + minimum)
     return newdata
     

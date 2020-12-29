@@ -10,7 +10,7 @@ object Utils {
   }
 
   def isPointDominated(pointA: Point, pointB: Point): Boolean ={
-    mayPointBeDominated(pointA,pointB)&& !mayPointBeDominated(pointB,pointA)
+    mayPointBeDominated(pointA,pointB) && !mayPointBeDominated(pointB,pointA)
   }
 
   def isCellPartiallyDominated(cellA: Cell, cellB: Cell): Boolean ={

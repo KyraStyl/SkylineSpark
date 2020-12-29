@@ -46,10 +46,13 @@ object TopkSkyline {
       .map(x=>{
         (x._2._2._1,x._2._1+x._2._2._2)
       })
-      .sortBy(x=>x._2,ascending = false)
-      .take(k)
+      .collect()
+      .sortWith((x,y)=>x._2>y._2)
+      .slice(0,k)
+
     rddSkyline.unpersist()
     score
+
 
 
   }
