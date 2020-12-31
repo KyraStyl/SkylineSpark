@@ -1,7 +1,7 @@
 name := "sparkSkyline_TopK"
 version := "0.1"
 scalaVersion := "2.11.12"
-val sparkVersion = "2.4.4"
+val sparkVersion = "2.4.7"
 
 
 libraryDependencies += "com.typesafe.scala-logging" % "scala-logging-slf4j_2.10" % "2.1.2"

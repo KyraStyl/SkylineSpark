@@ -1,129 +1,124 @@
-import Utils.{isCellFullyDominated, isCellPartiallyDominated, isPointDominated}
+import Utils.{calculateCellsThatPartiallyDominates, isCellFullyDominated, isCellPartiallyDominated, isPointDominated}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.storage.StorageLevel
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 object TOPk {
 
-  //Iterable[Point]
-  def computeTopk(points: RDD[PointInCell], k: Int):Array[(PointInCell,Int)] = {
-    val partByCell = points.map(x=>(x.cell,1)).reduceByKey(_+_).collect().toBuffer //one pass to get count for every cell
-    val metrics=calculateLowerUpperF(partByCell) //calculate tl, tu, gf
-    val c=calculatec(metrics,k) //calculate γ
-    val prunedCells=pruneCells(metrics,k,c) //prune based on the tl, gf and γ
-//    val prunedRDD =points.groupBy(x=>x.cell).filter(x=>prunedCells.contains(x._1))
-//    val data=scorePoint(prunedRDD.flatMap(x=>x._2).collect().toBuffer,k,metrics,points)
-    val spark=SparkSession.builder().getOrCreate()
+  case class Metric(cell: Cell, size: Int, tl: Int, tu: Int, gf: Int)
+
+  def computeTopk(points: RDD[PointInCell], k: Int): Array[(PointInCell, Int)] = {
+    val spark = SparkSession.builder().getOrCreate()
+    val partByCellRDD = points.map(x => (x.cell, 1)).reduceByKey(_ + _)
+    val metricsRDD = calculateMetricsRDD(partByCellRDD)
+    val c = calculateC(metricsRDD,k)
+    val prunedCells=pruneCellsRDD(metricsRDD,k,c)
+    val metrics = metricsRDD.map(x=>((x.cell,x.size),x.tl,x.tu,x.gf)).collect().toBuffer
     val broadcastPrunedCells = spark.sparkContext.broadcast(prunedCells)
-    val prunedRDD = points.filter(x=>broadcastPrunedCells.value.contains(x.cell))
-    val pruneIncell = prunedRDD.groupBy(_.cell).map(x=>x._2).map(x=>pruneInCell(x,k)).flatMap(_.map(x=>x))
-    val totalElements=pruneIncell.count()
-    println("We will consider: "+totalElements+" points")
-    val data = TopkSkyline.scorePoint(pruneIncell,k,metrics,points)
+    val prunedRDD = points.filter(x => broadcastPrunedCells.value.contains(x.cell))
+    val pruneIncell = prunedRDD.groupBy(_.cell).map(x => x._2).map(x => pruneInCell(x, k)).flatMap(_.map(x => x))
+    val totalElements = pruneIncell.count()
+    println("We will consider: " + totalElements + " points")
+    val data = scorePoint(pruneIncell, k, metrics, points)
     data
 
   }
 
-  def calculateLowerUpperF(cellCounts:mutable.Buffer[(Cell,Int)]):ArrayBuffer[((Cell,Int),Int,Int,Int)] ={
-    val list = new ArrayBuffer[((Cell,Int),Int,Int,Int)]()
-    for( i <- cellCounts.indices){
-      var tl=0
-      var tu=0
-      var gf=0
-      for (j <- cellCounts.indices){
-        if(isCellPartiallyDominated(cellCounts(j)._1,cellCounts(i)._1)) tu+=cellCounts(j)._2
-        if(i!=j){
-          if (isCellFullyDominated(cellCounts(j)._1,cellCounts(i)._1)) tl+=cellCounts(j)._2
-          if (isCellFullyDominated(cellCounts(i)._1,cellCounts(j)._1)) gf+=cellCounts(j)._2
-        }
-      }
-      list.append((cellCounts(i),tl,tu,gf))
-    }
-    list
+
+
+  def calculateMetricsRDD(cells: RDD[(Cell, Int)]): RDD[Metric] = {
+    cells.cartesian(cells)
+      .map(x => {
+        var tl = 0
+        var tu = 0
+        var gf = 0
+        if (isCellPartiallyDominated(x._2._1, x._1._1)) tu += x._2._2
+        if (x._1._1 != x._2._1 && isCellFullyDominated(x._2._1, x._1._1)) tl += x._2._2
+        if (x._1._1 != x._2._1 && isCellFullyDominated(x._1._1, x._2._1)) gf += x._2._2
+        Metric(x._1._1, x._1._2, tl, tu, gf)
+      })
+      .groupBy(_.cell)
+      .map(x => {
+        val elements = x._2.head.size
+        var tl = 0
+        var tu = 0
+        var gf = 0
+        x._2.foreach(m => {
+          tl += m.tl
+          tu += m.tu
+          gf += m.gf
+        })
+        Metric(x._1, elements, tl, tu, gf)
+      })
   }
 
-  def calculatec(metrics:ArrayBuffer[((Cell,Int),Int,Int,Int)],k:Int): Int ={
-    var m=0
-    for (i <-metrics sortWith ((x, y) => x._2 > y._2)){
-      m+=i._1._2
-      if (m>=k) return i._2
+  def calculateC(metrics:RDD[Metric],k:Int):Int={
+    val ms = metrics
+      .sortBy(_.tl,ascending = false)
+      .take(k)
+    var m = 0
+    for (i<-ms){
+      m+=i.tl
+      if(m>=k) return i.tl
     }
     -1
   }
 
-  def pruneCells(metrics:ArrayBuffer[((Cell,Int),Int,Int,Int)],k:Int,c:Int): ArrayBuffer[Cell] ={
-    val toKeep = new ArrayBuffer[Cell]()
-    for(m<-metrics){
-      if (m._4<k && m._3>=c) toKeep.append(m._1._1)
-    }
-    toKeep
-
+  def pruneCellsRDD(metrics:RDD[Metric],k:Int,c:Int):Array[Cell]={
+    metrics.filter(m=> m.gf<k && m.tu>=c).map(_.cell).collect()
   }
-
-
-
-  def pruneKDominatedPointsInCell(points: Iterable[PointInCell], k:Int):Iterable[(PointInCell,Int)]={
-    var pr = points.toBuffer
-    val toKeep = new ArrayBuffer[(Int,Int)]()
-    for(i <- pr.indices) {
-      var m=0
-      var d=0
-      for(j <- pr.indices){
-        if(i!=j && isPointDominated(pr(j).point,pr(i).point))  m+=1
-        if(i!=j && isPointDominated(pr(i).point,pr(j).point)) d+=1
-      }
-      if (m<k) toKeep.append((i,d))
-
-    }
-    toKeep.map(x=>(pr(x._1),x._2))
-  }
-
-  def pruneInCell(points: Iterable[PointInCell], k:Int):ArrayBuffer[PointInCell]={
+  def pruneInCell(points: Iterable[PointInCell], k: Int): ArrayBuffer[PointInCell] = {
     var pr = points.toBuffer
     val toKeep = new ArrayBuffer[PointInCell]()
-    for(i <- pr.indices) {
-      var m=0
-      for(j <- pr.indices){
-        if(i!=j && isPointDominated(pr(i).point,pr(j).point))  m+=1
+    for (i <- pr.indices) {
+      var m = 0
+      for (j <- pr.indices) {
+        if (i != j && isPointDominated(pr(i).point, pr(j).point)) m += 1
       }
-      if (m<=k) toKeep.append(pr(i))
+      if (m <= k) toKeep.append(pr(i))
     }
     toKeep
   }
 
+  def scorePoint(skyline: RDD[PointInCell], k: Int, metrics: mutable.Buffer[((Cell, Int), Int, Int, Int)], rddPoints: RDD[PointInCell]): Array[(PointInCell,Int)] = {
+    val spark = SparkSession.builder().getOrCreate()
+    val cells: Array[Cell] = rddPoints.groupBy(x => x.cell).map(x => x._1).collect()
+    val broadcastMetrics = spark.sparkContext.broadcast(metrics)
+    val broadcastCells = spark.sparkContext.broadcast(cells)
+    val rddSkyline:RDD[(PointInCell,(Int,ArrayBuffer[Cell]))] = skyline.map(skylinePoint => {
+      val tl = broadcastMetrics.value.filter(x => x._1._1 == skylinePoint.cell).head._2
+      val pcells = calculateCellsThatPartiallyDominates(skylinePoint.cell, broadcastCells.value)
+      (skylinePoint ,(tl, pcells))
+    }).persist(StorageLevel.MEMORY_AND_DISK)
+    val extraPoints = rddSkyline.cartesian(rddPoints)
+      .filter(combination => {
+        combination._1._2._2.contains(combination._2.cell)
+      })
+      .map(combination => {
+        var dominated = 0
+        if (isPointDominated(combination._2.point, combination._1._1.point)) dominated = 1
+        (combination._1._1.point.toString,(combination._1._1, dominated))
+      })
+      .reduceByKey((x,y)=>{
+        (x._1,x._2+y._2)
+      })
+    val score = rddSkyline.map(x=>{
+      (x._1.point.toString,x._2._1)
+    })
+      .join(extraPoints)
+      .map(x=>{
+        (x._2._2._1,x._2._1+x._2._2._2)
+      })
+      .collect()
+      .sortWith((x,y)=>x._2>y._2)
+      .slice(0,k)
 
-
-  def scorePoint(points: Iterable[PointInCell],k:Int,metrics:ArrayBuffer[((Cell,Int),Int,Int,Int)],rddPoints:RDD[PointInCell]):List[(PointInCell,Long)]={
-    var pr = points.toBuffer
-    val score = new ArrayBuffer[(PointInCell,Long)]()
-    val cells:Array[Cell]=rddPoints.groupBy(x=>x.cell).map(x=>x._1).collect()
-    for (i <- pr.indices){
-      val tl= metrics.filter(x=>x._1._1==pr(i).cell).head._2
-      //for all the cells that partially dominates
-      var pcells = calculateCellsThatPartiallyDominates(pr(i).cell,cells)
-      val extraP=rddPoints.filter(x=>pcells.contains(x.cell)).map(x=>{
-        if(isPointDominated(x.point,pr(i).point)) 1
-        else 0
-      }).sum().toLong
-      score.append((pr(i),tl+extraP))
-    }
-    score.sortWith((x,y)=>x._2>y._2).toList.take(k)
+    rddSkyline.unpersist()
+    score
   }
 
-  def calculateCellsThatPartiallyDominates(cell:Cell,cells:Array[Cell]): ArrayBuffer[Cell] ={
-    val partiallyDomCells = new ArrayBuffer[Cell]()
-    for(acell:Cell <- cells){
-      var isLegit=true
-      for (i<-cell.indexes.indices){
-        if (cell.indexes(i)>acell.indexes(i)){
-          isLegit=false
-        }
-      }
-      if (isLegit && !isCellFullyDominated(acell,cell)) partiallyDomCells.append(acell)
-    }
-    partiallyDomCells
-  }
 
 }

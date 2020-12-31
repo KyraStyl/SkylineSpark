@@ -38,8 +38,8 @@ object Main extends App {
       val points = sc.textFile(filename).map(line => new Point(line))
       println(points.count() + " elements loaded.")
 
-      val perc = 0.10 // TODO: check this so it will be able to load them to drivers memory
-      val number_of_cells = 10
+      val perc = 0.02 // TODO: check this so it will be able to load them to drivers memory
+      val number_of_cells = 2
       val sample = points.sample(false, perc)
       println("Sample size = " + sample.count)
 
@@ -79,6 +79,7 @@ object Main extends App {
       //Its working
       println("An example of  how PointInCell is represented")
       mapToCells.take(1).foreach(x => println(x.point, x.cell))
+//      mapToCells.groupBy(_.cell).map(x=>(x._1,x._2.size)).foreach(println)
       val spark = SparkSession.builder().getOrCreate()
       if (query == "skyline") { //This is the code for skyline
         spark.time({
@@ -88,15 +89,13 @@ object Main extends App {
         })
       } else if (query == "topk") { //This is the code for top k
         spark.time({
-          val k = 3
           println("Top " + k + " points")
           TOPk.computeTopk(mapToCells, k).foreach(println)
         })
       } else if (query == "skyline_topk") { //This is the code for topk of skyline
         spark.time({
-          val kskyline = 3
-          println("Top " + kskyline + "points of the skyline")
-          TopkSkyline.calculateTopKSkyline(mapToCells, kskyline).foreach(println)
+          println("Top " + k + "points of the skyline")
+          TopkSkyline.calculateTopKSkyline(mapToCells, k).foreach(println)
         })
       }
 
