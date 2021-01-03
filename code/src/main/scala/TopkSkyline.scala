@@ -1,4 +1,4 @@
-import TOPk.{calculateLowerUpperF, calculateMetricsRDD, scorePoint}
+import TOPk.{calculateMetricsRDD, scorePoint}
 import Utils.{calculateCellsThatPartiallyDominates, isPointDominated}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession

@@ -39,7 +39,7 @@ object Main extends App {
       println(points.count() + " elements loaded.")
 
       val perc = 0.02 // TODO: check this so it will be able to load them to drivers memory
-      val number_of_cells = 2
+      val number_of_cells = 20
       val sample = points.sample(false, perc)
       println("Sample size = " + sample.count)
 
