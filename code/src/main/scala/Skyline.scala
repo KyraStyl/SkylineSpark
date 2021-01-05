@@ -1,5 +1,6 @@
-import Utils.{isCellFullyDominated, isPointDominated}
+import Utils.{calcLB, calcUB, isCellFullyDominated, isCellFullyDominated2, isPointDominated}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -7,13 +8,18 @@ import scala.collection.mutable.ArrayBuffer
 object Skyline {
 
   def computeSkyline(points:RDD[PointInCell]): Iterable[PointInCell]={
+    val spark = SparkSession.builder().getOrCreate()
     val partByCell = points.groupBy(x=>x.cell)
     val prunedCells = pruneDominatedCells(partByCell.map(x=>x._1).collect().toBuffer)
 
-    val prunedRDD = partByCell.filter(x=>prunedCells.contains(x._1)).map(x=>(x._1,pruneDominatedPoints(x._2)))
+    val broadcastPrunedCells = spark.sparkContext.broadcast(prunedCells)
 
-//    val skyline = pruneDominatedPoints(prunedRDD.flatMap(x=>x._2).collect().toBuffer).map(x=>x.point)
-    val skyline = pruneDominatedPoints(prunedRDD.flatMap(x=>x._2).collect().toBuffer)
+    val prunedRDD = partByCell
+      .filter(x=>broadcastPrunedCells.value.contains(x._1))
+      .map(x=>(x._1,pruneDominatedPoints(x._2)))
+      .flatMap(x=>x._2)
+
+    val skyline = pruneDominatedPoints(prunedRDD.collect())
     skyline
 
   }
@@ -37,7 +43,7 @@ object Skyline {
     val toPrune = new ArrayBuffer[Int]()
     for(i <- pr.indices)
       for(j <- pr.indices){
-        if(i!=j && isCellFullyDominated(pr(j),pr(i))){
+        if(i!=j && isCellFullyDominated2(pr(j),pr(i))){
           toPrune.append(j)
         }
       }
