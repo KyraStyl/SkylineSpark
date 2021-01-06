@@ -16,21 +16,24 @@ object Utils {
   }
 
   def isCellPartiallyDominated(cellA: Cell, cellB: Cell): Boolean ={
-    val a = cellA.indexes
-    val b = cellB.indexes
-    for (i <- a.indices){
-      if(a(i)<b(i)) return false
-    }
-    true
+    val LBb = calcLB(cellB)
+    val LBa = calcLB(cellA)
+    LBb.equals(LBa) || isPointDominated(LBa,LBb)
   }
 
   def isCellFullyDominated(cellA: Cell, cellB: Cell): Boolean ={
-    val a = cellA.indexes
-    val b = cellB.indexes
-    for (i <- a.indices){
-      if(a(i)<=b(i)) return false
-    }
-    true
+    val UBb = calcUB(cellB)
+    val LBa = calcLB(cellA)
+    UBb.equals(LBa) || isPointDominated(LBa,UBb)
+  }
+
+  def calcUB(cell: Cell): Point ={
+    val indexes = cell.indexes.map(x=>x+1)
+    calcLB(Cell(indexes))
+  }
+
+  def calcLB(cell: Cell): Point ={
+    new Point(cell.toString)
   }
 
   def calculateCellsThatPartiallyDominates(cell:Cell,cells:Array[Cell]): ArrayBuffer[Cell] ={

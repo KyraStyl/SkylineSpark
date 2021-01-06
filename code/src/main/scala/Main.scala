@@ -39,7 +39,7 @@ object Main extends App {
       println(points.count() + " elements loaded.")
 
       val perc = 0.02 // TODO: check this so it will be able to load them to drivers memory
-      val number_of_cells = 20
+      val number_of_cells = 20 //per dimension
       val sample = points.sample(false, perc)
       println("Sample size = " + sample.count)
 
@@ -79,6 +79,7 @@ object Main extends App {
       //Its working
       println("An example of  how PointInCell is represented")
       mapToCells.take(1).foreach(x => println(x.point, x.cell))
+
 //      mapToCells.groupBy(_.cell).map(x=>(x._1,x._2.size)).foreach(println)
       val spark = SparkSession.builder().getOrCreate()
       if (query == "skyline") { //This is the code for skyline
