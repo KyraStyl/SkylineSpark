@@ -1,4 +1,4 @@
-import Utils.{calcLB, calcUB, isCellFullyDominated, isCellFullyDominated2, isPointDominated}
+import Utils.{calcLB, calcUB, isCellFullyDominated, isPointDominated}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 
@@ -43,7 +43,7 @@ object Skyline {
     val toPrune = new ArrayBuffer[Int]()
     for(i <- pr.indices)
       for(j <- pr.indices){
-        if(i!=j && isCellFullyDominated2(pr(j),pr(i))){
+        if(i!=j && isCellFullyDominated(pr(j),pr(i))){
           toPrune.append(j)
         }
       }
