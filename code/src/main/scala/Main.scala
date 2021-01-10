@@ -9,7 +9,7 @@ object Main extends App {
 
   // Create spark configuration
   val sparkConf = new SparkConf()
-    .setMaster("local[*]")
+//    .setMaster("local[*]")
     .setAppName("Skyline")
   //
   // Create spark context

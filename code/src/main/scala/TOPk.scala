@@ -1,4 +1,4 @@
-import Utils.{calculateCellsThatPartiallyDominates, isCellFullyDominated, isCellFullyDominated2, isCellPartiallyDominated, isCellPartiallyDominated2, isPointDominated}
+import Utils.{calculateCellsThatPartiallyDominates, isCellFullyDominated, isCellPartiallyDominated, isPointDominated}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
