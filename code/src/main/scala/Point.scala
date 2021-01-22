@@ -19,6 +19,14 @@ class Point (var line: String) extends Serializable{
 }
 
 case class Cell(indexes: List[Int]) extends Serializable{
+  def equals(other: Cell): Boolean = {
+    val othersValues = other.indexes
+    for (i <- indexes.indices){
+      if (indexes(i)!=othersValues(i)) return false
+    }
+    true
+  }
+
   override def toString: String = {
     var str = indexes.take(1).head.toString
     var p=0
