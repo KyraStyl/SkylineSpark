@@ -9,7 +9,7 @@ object Main extends App {
 
   // Create spark configuration
   val sparkConf = new SparkConf()
-//    .setMaster("local[*]")
+    .setMaster("local[8]")
     .setAppName("Skyline")
   //
   // Create spark context
@@ -39,7 +39,7 @@ object Main extends App {
       println(points.count() + " elements loaded.")
 
       val perc = 0.02 // TODO: check this so it will be able to load them to drivers memory
-      val number_of_cells = 20 //per dimension
+      val number_of_cells = 10 //per dimension
       val sample = points.sample(false, perc)
       println("Sample size = " + sample.count)
 
@@ -61,7 +61,7 @@ object Main extends App {
       val cellBounds = sc.broadcast(cell.toList)
 
       //map each point to a cell
-      val mapToCells: RDD[PointInCell] = points.map(point => {
+      val mapToCells2: RDD[PointInCell] = points.map(point => {
         val bounds = cellBounds.value
         var cells: ListBuffer[Int] = ListBuffer.fill(bounds.size)(-1)
         for (dimension <- bounds.indices) { //looping through dimensions
@@ -78,8 +78,8 @@ object Main extends App {
       })
       //Its working
       println("An example of  how PointInCell is represented")
-      mapToCells.take(1).foreach(x => println(x.point, x.cell))
-
+      mapToCells2.take(1).foreach(x => println(x.point, x.cell))
+      val mapToCells=mapToCells2.repartition(8)
 //      mapToCells.groupBy(_.cell).map(x=>(x._1,x._2.size)).foreach(println)
       val spark = SparkSession.builder().getOrCreate()
       if (query == "skyline") { //This is the code for skyline
